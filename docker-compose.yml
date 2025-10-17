@@ -1,0 +1,41 @@
+version: '3.8'
+services:
+  backend:
+    build:
+      context: ./SteamApi
+      dockerfile: Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Postgres=Host=postgres;Port=5432;Database=steamapi;Username=steam;Password=steam
+      - ConnectionStrings__ClickHouse=Host=clickhouse;Port=8123;Database=default;Username=default;Password=
+    depends_on:
+      - postgres
+      - clickhouse
+    ports:
+      - "8080:8080"
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=steamapi
+      - POSTGRES_USER=steam
+      - POSTGRES_PASSWORD=steam
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    environment:
+      - CLICKHOUSE_DB=default
+    ports:
+      - "8123:8123"
+    volumes:
+      - chdata:/var/lib/clickhouse
+
+volumes:
+  pgdata:
+  chdata:
+
+
