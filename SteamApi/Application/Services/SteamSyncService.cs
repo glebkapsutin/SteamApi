@@ -45,7 +45,7 @@ namespace SteamApi.Application.Services
                 _db.Games.RemoveRange(toRemove);
             }
             var saved = await _db.SaveChangesAsync(ct);
-            // 4) Запись среза в ClickHouse (временно отключено для демо)
+            // 4) Запись среза в ClickHouse
             try
             {
                 await _ch.EnsureSchemaAsync(ct);
@@ -67,11 +67,13 @@ namespace SteamApi.Application.Services
                 if (rows.Count > 0)
                 {
                     await _ch.WriteSnapshotAsync(snapshotUtc, rows, ct);
+                    Console.WriteLine($"Written {rows.Count} rows to ClickHouse");
                 }
             }
             catch (Exception ex)
             {
-                // Игнорируем ошибки ClickHouse для демо
+                Console.WriteLine($"ClickHouse write error: {ex.Message}");
+                // Продолжаем работу даже если ClickHouse недоступен
             }
 
             return enriched.Count + saved;

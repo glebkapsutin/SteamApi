@@ -3,13 +3,20 @@ using Microsoft.EntityFrameworkCore;
 using SteamApi.Infrastructure;
 using SteamApi.Application.Services;
 using SteamApi.Infrastructure.Background;
+using SteamApi.Infrastructure.JsonConverters;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        // Добавляем поддержку DateOnly
+        options.JsonSerializerOptions.Converters.Add(new DateOnlyJsonConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -54,11 +61,23 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// DB init (dev/demo)
+// DB init with migrations
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+    db.Database.Migrate();
+    
+    // Initialize ClickHouse schema (temporarily disabled)
+    try
+    {
+        var chWriter = scope.ServiceProvider.GetRequiredService<IClickHouseWriter>();
+        await chWriter.EnsureSchemaAsync(CancellationToken.None);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"ClickHouse initialization failed: {ex.Message}");
+        // Continue without ClickHouse
+    }
 }
 
 app.UseSwagger();

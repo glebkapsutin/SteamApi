@@ -1,4 +1,5 @@
 using SteamApi.Domain;
+using SteamApi.Application.DTOs;
 
 namespace SteamApi.Application.Services
 {
@@ -6,7 +7,7 @@ namespace SteamApi.Application.Services
 
     public interface IGameService
     {
-        Task<IReadOnlyList<Game>> GetGamesForMonthAsync(GamesQuery query, CancellationToken ct);
+        Task<IReadOnlyList<GameDto>> GetGamesForMonthAsync(GamesQuery query, CancellationToken ct);
         Task<IDictionary<DateOnly, int>> GetCalendarAsync(GamesQuery query, CancellationToken ct);
     }
 

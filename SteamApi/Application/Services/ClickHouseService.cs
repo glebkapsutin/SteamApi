@@ -9,6 +9,7 @@ namespace SteamApi.Application.Services
         Task EnsureSchemaAsync(CancellationToken ct);
         Task WriteSnapshotAsync(DateTime snapshotUtc, IEnumerable<ClickHouseGameRow> rows, CancellationToken ct);
         Task<IEnumerable<GenreDynamicsRow>> GetGenreDynamicsAsync(DateOnly startMonth, DateOnly endMonth, CancellationToken ct);
+        Task<IEnumerable<GenreAgg>> GetTopGenresAsync(DateOnly startMonth, DateOnly endMonth, int top, CancellationToken ct);
     }
 
     public record ClickHouseGameRow(int AppId, string Name, string Genre, int Followers, DateTime ReleaseDateUtc);
@@ -92,6 +93,40 @@ namespace SteamApi.Application.Services
                     Month: reader.GetString("month"),
                     GamesCount: reader.GetInt32("games_count"),
                     AvgFollowers: reader.GetDouble("avg_followers")
+                ));
+            }
+            
+            return results;
+        }
+
+        public async Task<IEnumerable<GenreAgg>> GetTopGenresAsync(DateOnly startMonth, DateOnly endMonth, int top, CancellationToken ct)
+        {
+            await _conn.OpenAsync(ct);
+            await using var cmd = _conn.CreateCommand();
+            
+            var startDate = startMonth.ToDateTime(TimeOnly.MinValue).ToString("yyyy-MM-dd HH:mm:ss");
+            var endDate = endMonth.ToDateTime(TimeOnly.MinValue).ToString("yyyy-MM-dd HH:mm:ss");
+            
+            cmd.CommandText = $@"
+                SELECT 
+                    genre,
+                    count(DISTINCT app_id) as games_count,
+                    avg(followers) as avg_followers
+                FROM game_snapshots 
+                WHERE release_date >= '{startDate}' AND release_date < '{endDate}'
+                GROUP BY genre
+                ORDER BY games_count DESC
+                LIMIT {top}";
+            
+            var results = new List<GenreAgg>();
+            await using var reader = await cmd.ExecuteReaderAsync(ct);
+            
+            while (await reader.ReadAsync(ct))
+            {
+                results.Add(new GenreAgg(
+                    Genre: reader.GetString(0),
+                    Games: (int)Convert.ToUInt64(reader.GetValue(1)),
+                    AvgFollowers: reader.GetDouble(2)
                 ));
             }
             

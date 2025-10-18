@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__Postgres=Host=postgres;Port=5432;Database=steamapi;Username=steam;Password=steam
+      - ConnectionStrings__Postgres=Host=postgres;Port=5432;Database=steamapi;Username=postgres;Password=074123
       - ConnectionStrings__ClickHouse=Host=clickhouse;Port=8123;Database=default;Username=default;Password=
     depends_on:
       - postgres
@@ -18,10 +18,10 @@ services:
     image: postgres:16-alpine
     environment:
       - POSTGRES_DB=steamapi
-      - POSTGRES_USER=steam
-      - POSTGRES_PASSWORD=steam
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=074123
     ports:
-      - "5432:5432"
+      - "5436:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -29,6 +29,9 @@ services:
     image: clickhouse/clickhouse-server:24.8
     environment:
       - CLICKHOUSE_DB=default
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
     ports:
       - "8123:8123"
     volumes:
